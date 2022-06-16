@@ -1,2 +1,2 @@
 # Hash Jar files
- Hash関係のjarファイルまとめです。src/に本体を置いてあります
+ Hash関係のjarファイルまとめです。src/にsrcを置いてあります
