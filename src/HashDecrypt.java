@@ -132,6 +132,11 @@ class DecryptThread extends java.lang.Thread {
     }
 }
 
+/**
+ * 解析スレッドなどを呼び出したり、必要な値を受け取るクラス
+ * @author distriful5061
+ * @version 1.0.0
+ */
 public class Main {
     /**
      * 一致したパスワードがあるかどうかを示す変数。trueははい、falseはいいえ
