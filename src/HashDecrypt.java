@@ -8,11 +8,15 @@ class DecryptThread extends java.lang.Thread {
     private final String CrackString;
     private final char[] Chars;
     private final boolean is1Thread;
+    private final int startIndex;
+    private final int endIndex;
 
-    public DecryptThread(int endStringLength1,String CrackString1,char[] Chars1){
+    public DecryptThread(int endStringLength1,String CrackString1,char[] Chars1,int startIndex1,int endIndex1){
         this.endStringLength = endStringLength1;
         this.CrackString = CrackString1;
         this.Chars = Chars1;
+        this.startIndex = startIndex1;
+        this.endIndex = endIndex1;
         is1Thread = getName().equals("Thread-1");
     }
 
@@ -41,10 +45,18 @@ class DecryptThread extends java.lang.Thread {
             while(!FLAG_1 && !Main.gotPw){
                 RESULTPASSWORD[0] = RESULTPASSWORD[0] + 1;
                 for(int j=0;j<endStringLength;j++){
+                    if(j == i){
+                        if(RESULTPASSWORD[j] >= endIndex){
+                            RESULTPASSWORD[j] = startIndex;
+                            RESULTPASSWORD[j+1] = RESULTPASSWORD[j+1] + 1;
+                            FLAG_1 = true;
+                        }
+                    }
+
                     if(RESULTPASSWORD[j] >= Chars.length){
                         RESULTPASSWORD[j] = 0;
                         RESULTPASSWORD[j+1] = RESULTPASSWORD[j+1] + 1;
-                        if((j+1) == (i+1)) FLAG_1 = true;
+                        if(j == i) FLAG_1 = true;
                     }
                 }
                 StringBuilder string = new StringBuilder();
@@ -90,6 +102,17 @@ public class Main {
                     "+"+"."+"/"+"\\"+";"+":"+"]"+"["+"@"+"^"+"-"+
                     "<"+">"+"?"+"_"+"}"+"{"+","+"*"+"`"+"|"+"~"+"="+
                     "!"+"\""+"#"+"$"+"%"+"&"+ "'" +"("+")"+" "+"¯";
+
+    public static final char[] Chars2 = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+            'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+            'u', 'v', 'w', 'x', 'y', 'z',
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+            'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+            'U', 'V', 'W', 'X', 'Y', 'Z',
+            ',','.','/','\\',';',':',']','[','@','^','-',
+            '<','>','?','_','}','{','+','*','`','|','~','=',
+            '!','\"','#','$','%','&','\'','(',')'};
     public static String CrackString;
     public static int endStringLength;
 
@@ -159,13 +182,17 @@ public class Main {
         print("Debug "+times22+" "+(times2 * 2)+"\n");
 
         //なんか眠いです
-        for(int i=0;i<8;i++) {
+        for(int i=1;i<=(times2 * 2);i++) {
+            /*
             char[] ReqChar = new char[times22];
             for(int j=0;j<times22;j++){
                 ReqChar[j] = Chars.charAt(j + (i * times22));
             }
 
-            DecryptThread thread = new DecryptThread(endStringLength,CrackString,ReqChar);
+             */
+            int startIndex = (i-1) * times22;
+            int endIndex = i * times22;
+            DecryptThread thread = new DecryptThread(endStringLength,CrackString,Chars2,startIndex,endIndex);
             thread.start();
         }
 
