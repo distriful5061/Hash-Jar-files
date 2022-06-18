@@ -5,3 +5,9 @@ Hash.jar: MD5,SHA-1,SHA-256,SHA-512,SHA3-256,SHA3-512のハッシュ値を生成
 
 HashDecypt.jar: ハッシュ値を解析します。admin,password,root等であれば簡易的なレインボーテーブル似て検出可能です。
 また、文字数から使用されている方式の自動検出が可能です
+
+# JavaDoc
+
+JavaDocsを生成する場合は以下のコマンドを、srcディレクトリ内で使用してください
+
+javadoc -encoding UTF-8 -private -d doc *.java
