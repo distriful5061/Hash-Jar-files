@@ -49,6 +49,7 @@ class DecryptThread extends java.lang.Thread {
         this.Chars = Chars1;
         this.startIndex = startIndex1;
         this.endIndex = endIndex1;
+
         is1Thread = getName().equals("Thread-1");
     }
 
@@ -66,6 +67,7 @@ class DecryptThread extends java.lang.Thread {
      */
     public void run(){
         MessageDigest UsingHashInstance; //ハッシュ値計算のための変数
+
         try {
             UsingHashInstance = MessageDigest.getInstance(Main.HASHTYPE);//Mainクラスで指定されたHASHTYPEを使用
         } catch (NoSuchAlgorithmException e) {
@@ -73,9 +75,7 @@ class DecryptThread extends java.lang.Thread {
         }
 
         int[] RESULT_PASSWORD = new int[endStringLength + 1]; //Chars変数のindexを格納するためのint[]。IndexOutOfRange対策に一桁追加していますが、後述にて+1された場所にアクセスされません、
-        for(int i=0;i<=endStringLength;i++){
-            RESULT_PASSWORD[i] = 0;//RESULT_PASSWORDを初期化しています
-        }
+        Arrays.fill(RESULT_PASSWORD,0); //RESULT-PASSWORDを初期化
 
         for(int i=0;i<endStringLength;i++){
             if(Main.gotPw) return;//もしパスワードがすでに算出されている場合は終了
@@ -87,6 +87,7 @@ class DecryptThread extends java.lang.Thread {
                 RESULT_PASSWORD[0] = RESULT_PASSWORD[0] + 1;//0桁目(文字で言う一番最後)に+1する
                 for(int j=0;j<endStringLength;j++){
                     if(j == i){//もし、ループしている値が現在の最大文字数と同じなら
+
                         if(RESULT_PASSWORD[j] > endIndex){//もし最大インデックスより大きいならば
                             RESULT_PASSWORD[j] = startIndex;
                             RESULT_PASSWORD[j+1] = RESULT_PASSWORD[j+1] + 1;
@@ -97,26 +98,28 @@ class DecryptThread extends java.lang.Thread {
                     if(RESULT_PASSWORD[j] >= Chars.length){//現在ループしている値が、Charsの長さと同じまたは大きいならば
                         RESULT_PASSWORD[j] = 0;
                         RESULT_PASSWORD[j+1] = RESULT_PASSWORD[j+1] + 1;
+
                         if(j == i) FLAG_1 = true;//ループしている値が現在の最大文字数と同じなら終了する
                     }
                 }
                 StringBuilder string = new StringBuilder();
+
                 for(int j=0;j<=i;j++){//現在の桁数だけループする
                     string.append(Chars[RESULT_PASSWORD[j]]);
                 }
+
                 String result = string.reverse().toString();//逆にしてStringに変換
 
                 String ResultHashed = Tohash(UsingHashInstance,result);//Tohashメソッドを使用しハッシュ化
                 if(CrackString.equals(ResultHashed)){//もしCrackStringとResultHashedが同じなら
                     Main.gotPw = true;
                     Main.OKPw = result;
+
                     return;//終了
                 }
             }
 
-            for(int u=0;u<endStringLength;u++){
-                RESULT_PASSWORD[u] = 0;//全桁を初期化
-            }
+            Arrays.fill(RESULT_PASSWORD,0); //全桁を初期化
         }
     }
 
@@ -186,6 +189,7 @@ public class Main {
             ',','.','/','\\',';',':',']','[','@','^','-',
             '<','>','?','_','}','{','+','*','`','|','~','=',
             '!','\"','#','$','%','&','\'','(',')'};
+
     /**
      * 解析するハッシュ値が格納される変数。長さである程度の予測が可能。
      */
@@ -205,35 +209,34 @@ public class Main {
     public static void main(String[] args) throws NoSuchAlgorithmException, InterruptedException {
         Scanner scanner = new Scanner(System.in);//scannerインスタンスを作成
         print("解析する文字列を入力してください:");
-        CrackString = scanner.next().toLowerCase().replace(" ","").replace("　","").replace("\n","");//半角と全角空白、改行を削除しています。
+        CrackString = scanner.next().toLowerCase()
+                .replace(" ","")
+                .replace("　","")
+                .replace("\n","");//半角と全角空白、改行を削除しています。
 
         if(CrackString.length() == 32){//32文字=MD5だと判別できる
             CrackString = "00000000"+CrackString;//JavaでMD5を作成すると、8つの0が先頭に付加されます
         }
 
-        print("レインボーテーブルチェックを実行しますか？ Y(es),N(o):");
+        print("ディクショナリーアタックを実行しますか？ Y(es),N(o):");
         String userainbowtable = scanner.next().toLowerCase();//レインボーチェックを使用するかどうか。
-        if(userainbowtable.equals("yes") || userainbowtable.equals("y") || userainbowtable.equals("true")){//yesもしくはy、trueならば
+
+        if(isYes(userainbowtable)){//yesもしくはy、trueならば
+            print("ビルトインリストで解析中...\n");
             String rainbowCheck = rainbowtableCheck(CrackString);//rainbowtableCheck関数を呼び出し
+
             if(Objects.equals(rainbowCheck, "")){//もし空白なら
                 print("どうやら見つからなかったようです。申し訳ありません。\n");
             } else {
                 String[] rainbowtableCheckList = rainbowCheck.split("\t");//\t(空白)で区切る。Index0は平文、Index1はハッシュ方式
                 print("見つかりました。 "+rainbowtableCheckList[0]+"です\n使用されている方式は、 "+rainbowtableCheckList[1]+" でした。");
+
                 return;//ここで終了
             }
         }
-        /*
-        print("ディクショナリーアタックをする場合はパスを入力してください:");
-        String path = scanner.next();
-        if(!Objects.equals(path, "")){
-
-        }
-
-         */
         print("ハッシュ方式を指定してください(先頭の数字を入力してください)\n");
 
-        String suiteiHashType = switch (CrackString.replace("00000000","").length()) {//MD5に付加される8つの0を削除して計算しています。
+        String suiteiHashType = switch (CrackString.replace("00000000","").length()) {//MD5に付加される8つの0を削除して計算しています。(Javaで生成した時に発生する
             case 32 -> " MD5:1";//見方 ハッシュ方式:インデックス(1高いです)
             case 40 -> " SHA-1:2";
             case 56 -> " SHA-224:3 SHA3-224:7";
@@ -250,19 +253,24 @@ public class Main {
             S++;
         }
         print(">");
+
         HASHTYPE = HashTypes[Integer.parseInt(scanner.next()) - 1];//parseIntでintにしてから、差分である1を引いています
         if(HASHTYPE.equalsIgnoreCase("md5")) StringFormat = "%020x";//もしMD5なら、%020xを代入
+
         print("最大の原文パスワードの長さを指定してください:");
-        endStringLength = Integer.parseInt(scanner.next());//上記コメントを参照
+        endStringLength = Integer.parseInt(scanner.next());//終了する、平文パスワードの最大文字数(8の場合9を超えると終了)
 
         print("2の何倍のスレッド数を使用しますか？:");
         int times2 = Integer.parseInt(scanner.next());
-        if(times2 < 1){//1未満ならば1を代入
+
+        if(times2 < 1){//1未満ならば1を代入(そもそもスレッドなくなるから
             times2 = 1;
         }
-        if(times2 > 16){//16より大きいならば16を代入
+
+        if(times2 > 16){//16より大きいならば16を代入(16以上だと、割り当てられる文字列がなくなるため
             times2 = 16;
         }
+
         int times22 = Chars.length() / (2 * times2);//2で掛け算した後にCharsの長さを割っている。startIndexとendIndexの算出に使用される
         print("Debug "+times22+" "+(times2 * 2)+"\n");
 
@@ -270,11 +278,13 @@ public class Main {
         for(int i=1;i<=(times2 * 2);i++) {
             int startIndex = (i-1) * times22;//0を掛け算すると0になる(?)
             int endIndex = i * times22;
+
             DecryptThread thread = new DecryptThread(endStringLength,CrackString,Chars2,startIndex,endIndex);//インスタンスを作成して値を引き渡している
             thread.start();
         }
 
         long startedMill = System.currentTimeMillis();//全スレッド開始終了時のミリ秒を記録
+
         String ProgressBar = "-";//くるくる回るあれです
         while(!gotPw) {//gotPwがfalseなら実行
             switch (ProgressBar) {//回す処理です
@@ -284,9 +294,11 @@ public class Main {
                 case "/" -> ProgressBar = "-";
             }
             print("\rProcessing "+ProgressBar);
+
             Thread.sleep(100);//0.1秒待機
         }
-        print("\nResult:"+OKPw);//結果を表示
+        print("\nResult:"+OKPw.replace("\n","\\n"));//結果を表示
+
         long endedtime = System.currentTimeMillis() - startedMill;//何ミリ秒かかったか記録
         print("\nUp time "+(int) Math.ceil((endedtime / 1000) / 60)+" Minutes, "+(int) Math.ceil(endedtime / 1000)+" Seconds, "+(endedtime % 1000)+" Mill seconds\n");
         //endedtimeを1000で割って切り捨てすると秒数、1000で割って60で割って切り捨てすると分、1000で割ったあまりを計算するとミリ秒
@@ -298,6 +310,15 @@ public class Main {
      */
     private static void print(String string){
         System.out.print(string);
+    }
+
+    /**
+     * Yesに関連する語句が入っているか？を検知する関数です
+     * @param string 一致するかどうか検知する文字列
+     * @return trueなら入っている、falseなら入っていない
+     */
+    private static boolean isYes(String string){
+        return string.equals("yes") || string.equals("y") || string.equals("true");
     }
 
     /**
@@ -408,4 +429,16 @@ public class Main {
             admin
             app
             chicken""";
+
+    /**
+     * 0x00~0xFFまで生成する関数です...
+     * @return u0~255までのchar配列
+     */
+    private char[] ZeroTo255() {
+        char[] result = new char[256];
+        for (int i = 0; i < 256; i++) {
+            result[i] = (char) i;
+        }
+        return result;
+    }
 }
