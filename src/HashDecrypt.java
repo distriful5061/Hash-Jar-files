@@ -1,3 +1,4 @@
+import javax.crypto.Mac;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -111,11 +112,43 @@ class DecryptThread extends java.lang.Thread {
                 String result = string.reverse().toString();//逆にしてStringに変換
 
                 String ResultHashed = Tohash(UsingHashInstance,result);//Tohashメソッドを使用しハッシュ化
-                if(CrackString.equals(ResultHashed)){//もしCrackStringとResultHashedが同じなら
-                    Main.gotPw = true;
-                    Main.OKPw = result;
+                switch(Main.MatchType) {
+                    case 1:
+                        if (CrackString.equals(ResultHashed)) {//もしCrackStringとResultHashedが同じなら
+                            Main.gotPw = true;
+                            Main.OKPw = result;
+                            Main.HashedPw = ResultHashed;
 
-                    return;//終了
+                            return;//終了
+                        }
+                        break;
+                    case 2:
+                        if (ResultHashed.startsWith(CrackString)){
+                            Main.gotPw = true;
+                            Main.OKPw = result;
+                            Main.HashedPw = ResultHashed;
+
+                            return;//終了
+                        }
+                        break;
+                    case 3:
+                        if (ResultHashed.endsWith(CrackString)){
+                            Main.gotPw = true;
+                            Main.OKPw = result;
+                            Main.HashedPw = ResultHashed;
+
+                            return;//終了
+                        }
+                        break;
+                    case 4:
+                        if (ResultHashed.contains(CrackString)){
+                            Main.gotPw = true;
+                            Main.OKPw = result;
+                            Main.HashedPw = ResultHashed;
+
+                            return;//終了
+                        }
+                        break;
                 }
             }
 
@@ -142,6 +175,11 @@ class DecryptThread extends java.lang.Thread {
  */
 public class Main {
     /**
+     * ハッシュ値と比較する方式<br>
+     * 1:完全一致 2:前方一致 3:後部一致 4:一部一致
+     */
+    public static int MatchType;
+    /**
      * 一致したパスワードがあるかどうかを示す変数。trueははい、falseはいいえ
      */
     public static boolean gotPw = false;
@@ -149,6 +187,10 @@ public class Main {
      * 一致したパスワードの平文が代入される変数
      */
     public static String OKPw = "";
+    /**
+     * 一致したパスワードのハッシュ値
+     */
+    public static String HashedPw = "";
     /**
      * ハッシュ値を整形する際に使用するFormat。MD5の場合にのみ%020xになる
      */
@@ -218,23 +260,33 @@ public class Main {
             CrackString = "00000000"+CrackString;//JavaでMD5を作成すると、8つの0が先頭に付加されます
         }
 
-        print("ディクショナリーアタックを実行しますか？ Y(es),N(o):");
-        String userainbowtable = scanner.next().toLowerCase();//レインボーチェックを使用するかどうか。
+        print("一致形式を入力\n1:完全一致 2:前方一致 3:後部一致 4:一部一致\n>");
+        MatchType = Integer.parseInt(scanner.next());
 
-        if(isYes(userainbowtable)){//yesもしくはy、trueならば
-            print("ビルトインリストで解析中...\n");
-            String rainbowCheck = rainbowtableCheck(CrackString);//rainbowtableCheck関数を呼び出し
+        if(MatchType < 1 || MatchType > 4){
+            MatchType = 4;
+        }
 
-            if(Objects.equals(rainbowCheck, "")){//もし空白なら
-                print("どうやら見つからなかったようです。申し訳ありません。\n");
-            } else {
-                String[] rainbowtableCheckList = rainbowCheck.split("\t");//\t(空白)で区切る。Index0は平文、Index1はハッシュ方式
-                print("見つかりました。 "+rainbowtableCheckList[0]+"です\n使用されている方式は、 "+rainbowtableCheckList[1]+" でした。");
+        if(MatchType != 1){
+            print("SHA-256を推奨します\n");
+        } else {
+            print("ディクショナリーアタックを実行しますか？ Y(es),N(o):");
+            String userainbowtable = scanner.next().toLowerCase();//レインボーチェックを使用するかどうか。
 
-                return;//ここで終了
+            if (isYes(userainbowtable)) {//yesもしくはy、trueならば
+                print("ビルトインリストで解析中...\n");
+                String rainbowCheck = rainbowtableCheck(CrackString);//rainbowtableCheck関数を呼び出し
+
+                if (Objects.equals(rainbowCheck, "")) {//もし空白なら
+                    print("どうやら見つからなかったようです。申し訳ありません。\n");
+                } else {
+                    String[] rainbowtableCheckList = rainbowCheck.split("\t");//\t(空白)で区切る。Index0は平文、Index1はハッシュ方式
+                    print("見つかりました。 " + rainbowtableCheckList[0] + "です\n使用されている方式は、 " + rainbowtableCheckList[1] + " でした。");
+
+                    return;//ここで終了
+                }
             }
         }
-        print("ハッシュ方式を指定してください(先頭の数字を入力してください)\n");
 
         String suiteiHashType = switch (CrackString.replace("00000000","").length()) {//MD5に付加される8つの0を削除して計算しています。(Javaで生成した時に発生する
             case 32 -> " MD5:1";//見方 ハッシュ方式:インデックス(1高いです)
@@ -243,10 +295,13 @@ public class Main {
             case 64 -> " SHA-256:4, SHA3-256:8";
             case 96 -> " SHA-384:5 SHA3-384:9";
             case 128 -> " SHA-512:6, SHA3-512:10";
-            default -> "見つかりませんでした。サポートしていないハッシュ値の可能性が高いです";
+            default -> "見つかりませんでした。完全一致を選択していないのであれば、SHA-256を推奨します。";
         };
 
+        print("ハッシュ方式を指定してください(先頭の数字を入力してください)\n");
+
         print("プログラムが推定したハッシュ方式:"+suiteiHashType+"\n");
+
         int S = 1;
         for(String hashtype : HashTypes){//For文で全出力
             print(S+":"+hashtype+"\n");
@@ -297,7 +352,7 @@ public class Main {
 
             Thread.sleep(100);//0.1秒待機
         }
-        print("\nResult:"+OKPw.replace("\n","\\n"));//結果を表示
+        print("\nResult\n"+OKPw.replace("\n","\\n")+" : "+HashedPw);//結果を表示
 
         long endedtime = System.currentTimeMillis() - startedMill;//何ミリ秒かかったか記録
         print("\nUp time "+(int) Math.ceil((endedtime / 1000) / 60)+" Minutes, "+(int) Math.ceil(endedtime / 1000)+" Seconds, "+(endedtime % 1000)+" Mill seconds\n");
